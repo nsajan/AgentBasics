@@ -1,5 +1,6 @@
 """FastAPI routes for the agent."""
 
+from typing import Optional, List
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -25,11 +26,11 @@ class ChatRequest(BaseModel):
 class ChatMessage(BaseModel):
     role: str  # "user" | "assistant" | "tool"
     content: str
-    tool_name: str | None = None
+    tool_name: Optional[str] = None
 
 
 class ChatResponse(BaseModel):
-    messages: list[ChatMessage]
+    messages: List[ChatMessage]
 
 
 @app.get("/health")
