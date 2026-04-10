@@ -49,8 +49,17 @@ async def chat(request: ChatRequest):
             if isinstance(msg, HumanMessage):
                 result.append(ChatMessage(role="user", content=msg.content))
             elif isinstance(msg, AIMessage):
-                if msg.content:
-                    result.append(ChatMessage(role="assistant", content=msg.content))
+                # content can be a string or a list of blocks
+                text_content = ""
+                if isinstance(msg.content, str):
+                    text_content = msg.content
+                elif isinstance(msg.content, list):
+                    text_content = " ".join(
+                        block.get("text", "") for block in msg.content
+                        if isinstance(block, dict) and block.get("type") == "text"
+                    )
+                if text_content.strip():
+                    result.append(ChatMessage(role="assistant", content=text_content))
                 if msg.tool_calls:
                     for tc in msg.tool_calls:
                         result.append(
