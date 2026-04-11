@@ -7,6 +7,7 @@ from pydantic import BaseModel
 from langchain_core.messages import HumanMessage, AIMessage, ToolMessage
 
 from src.agents.video_agent import run_agent
+from src.agents.pvideo_agent import create_video
 
 app = FastAPI(title="Agent Backend", version="0.1.0")
 
@@ -79,5 +80,52 @@ async def chat(request: ChatRequest):
                 )
 
         return ChatResponse(messages=result)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ── P-Video Agent endpoint ────────────────────────────────────────
+
+
+class VideoRequest(BaseModel):
+    script: str
+    image_url: Optional[str] = None
+
+
+class VideoResponse(BaseModel):
+    status: str
+    rejection_reason: Optional[str] = None
+    plan: Optional[dict] = None
+    seed_image_url: Optional[str] = None
+    clip_urls: Optional[List[str]] = None
+    final_video_url: Optional[str] = None
+    messages: List[str] = []
+
+
+@app.post("/video", response_model=VideoResponse)
+async def video(request: VideoRequest):
+    """Send a script to the P-Video agent. Returns a finished video.
+
+    The agent will:
+    1. Analyze the script and reject if it requires motion Pruna can't do
+    2. Plan clip structure (duration, count, camera angles)
+    3. Generate seed image (or use provided one)
+    4. Generate P-Video clips
+    5. Stitch if multiple clips
+
+    Input: { "script": "the text to speak", "image_url": "optional seed image" }
+    Output: { "status": "done|rejected", "final_video_url": "...", "plan": {...} }
+    """
+    try:
+        result = await create_video(request.script, request.image_url)
+        return VideoResponse(
+            status=result.get("status", "unknown"),
+            rejection_reason=result.get("rejection_reason"),
+            plan=result.get("plan"),
+            seed_image_url=result.get("seed_image_url"),
+            clip_urls=result.get("clip_urls", []),
+            final_video_url=result.get("final_video_url"),
+            messages=result.get("messages", []),
+        )
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
