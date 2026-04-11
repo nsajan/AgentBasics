@@ -90,12 +90,14 @@ async def chat(request: ChatRequest):
 class VideoRequest(BaseModel):
     script: str
     image_url: Optional[str] = None
+    draft: bool = False
 
 
 class VideoResponse(BaseModel):
     status: str
     rejection_reason: Optional[str] = None
     plan: Optional[dict] = None
+    estimated_cost: Optional[float] = None
     seed_image_url: Optional[str] = None
     clip_urls: Optional[List[str]] = None
     final_video_url: Optional[str] = None
@@ -117,11 +119,12 @@ async def video(request: VideoRequest):
     Output: { "status": "done|rejected", "final_video_url": "...", "plan": {...} }
     """
     try:
-        result = await create_video(request.script, request.image_url)
+        result = await create_video(request.script, request.image_url, request.draft)
         return VideoResponse(
             status=result.get("status", "unknown"),
             rejection_reason=result.get("rejection_reason"),
             plan=result.get("plan"),
+            estimated_cost=result.get("estimated_cost"),
             seed_image_url=result.get("seed_image_url"),
             clip_urls=result.get("clip_urls", []),
             final_video_url=result.get("final_video_url"),
